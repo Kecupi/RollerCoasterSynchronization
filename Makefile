@@ -10,7 +10,7 @@ proj2: proj2.o proj2_input.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 zip:
-	zip xhorens00.zip proj2.c Makefile
+	zip xhorens00.zip proj2.c proj2_input.c proj2_input.h Makefile
 
 clean:
-	rm *.o *.zip proj2
+	rm -f *.o *.zip proj2

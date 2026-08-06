@@ -1,3 +1,13 @@
+/**
+ *  @file proj2_input.c
+ *  @brief Library used for parsing user input
+ *
+ *  Library receives argc and argv from user, converts each argv to int for comparison with macros from lirary header.
+ *  If problem occurs, error message is printed and main program receives info to abort itself.
+ *
+ *  @author Stepan Horenek
+ *  @date 1. 8. 2026
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include "proj2_input.h"
@@ -5,16 +15,30 @@
 /**
  *  @brief function for conversion of char* from input to int
 */
-int val_to_int(char* convertible){
-    return 0;
+int val_to_int(char* convertible, int* value){
+    char* end_ptr;
+    *value = strtod(convertible, &end_ptr);
+    if (*end_ptr == '\0'){
+        return 0;
+    } else if (convertible == end_ptr){
+        fprintf(stderr, "ERROR: Invalid type of argument, can't be converted to int\n");
+        return 1;
+    } else {
+        fprintf(stderr, "ERROR: Invalid character inside argument during conversion\n");
+        return 1;
+    }
+    
 }
 /**
  *  @brief function to check whether input value is between boundaries, prints error message
 */
-int check_input_part(char *value, int min, int max, char *type){
-    value = val_to_int(value);
-    if ((*value  <= min) || (*value >= max)){
-        fprintf(stderr, "ERROR: %s out of range (expected %d < V < %d, got %d)\n", type, min, max, *value);
+int check_input_part(char *argument, int min, int max, char *type){
+    int value;
+    if (val_to_int(argument, &value) == 1){
+        return 1;
+    }
+    if ((value  < min) || (value > max)){
+        fprintf(stderr, "ERROR: %s out of range (expected %d <= N <= %d, got %d)\n", type, min, max, value);
         return 1;
     }
     return 0;
