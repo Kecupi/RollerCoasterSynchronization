@@ -1,5 +1,5 @@
 /**
- *  @file proj2_input.c
+ *  @file proc_input.c
  *  @brief Library used for parsing user input
  *
  *  Library receives argc and argv from user, converts each argv to int for comparison with macros from lirary header.
@@ -10,7 +10,7 @@
 */
 #include <stdio.h>
 #include <stdlib.h>
-#include "proj2_input.h"
+#include "proc_input.h"
 
 /**
  *  @brief function for conversion of char* from input to int

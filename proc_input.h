@@ -1,5 +1,5 @@
 /**
- *  @file proj2_input.h
+ *  @file proc_input.h
  *  @brief Header of library used for parsing user input
  *
  *  Library header contains macros for limits of specific parameters that are supposed to be used to run program  
@@ -7,8 +7,8 @@
  *  @author Stepan Horenek
  *  @date 1. 8. 2026
 */
-#ifndef __IOS_PROJ2_IN
-#define __IOS_PROJ2_IN
+#ifndef __IOS_PROC_IN
+#define __IOS_PROC_IN
 
 #include <stdio.h>
 #include <stdlib.h>
