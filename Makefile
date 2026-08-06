@@ -3,14 +3,15 @@ CFLAGS=-std=gnu99 -Wall -Werror -pedantic
 
 all: proc_main
 
-proc.o: proc_main.c proc_input.h
-proc_input.o: proc_input.c proc_input.h
+proc_main.o: proc_main.c proc_input.h proc_entities.h
+proc_input.o: proc_input.c proc_input.h proc_entities.h
+proc_entities.o: proc_entities.c proc_entities.h
 
-proc_main: proc.o proc_input.o
+proc_main: proc_main.o proc_input.o proc_entities.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 zip:
-	zip xhorens00.zip proc_main.c proc_input.c proc_input.h Makefile
+	zip xhorens00.zip proc_main.c proc_input.c proc_input.h proc_entities.c proc_entities.h Makefile
 
 clean:
-	rm -f *.o *.zip proc_main
+	rm -f *.o *.zip log.out proc_main

@@ -11,7 +11,9 @@
 #include <semaphore.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #include "proc_input.h"
+#include "proc_entities.h"
 
 typedef struct {
     int actions;

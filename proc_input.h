@@ -12,27 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
-// valid number of arguments
-#define ARG_NUM 7
-// boundaries for number of carts
-#define V_MIN 1
-#define V_MAX 9
-// boundaries for number of visitors
-#define N_MIN 1
-#define N_MAX 9999
-// boundaries for cart capacity
-#define K_MIN 4
-#define K_MAX 40
-// boundaries for cart runtime
-#define TV_MIN 0
-#define TV_MAX 1000
-// boundaries for maximum next visitor time
-#define TN_MIN 0
-#define TN_MAX 1000
-// boundaries for minimal interval between 2 carts
-#define O_MIN 1
-#define O_MAX 100
+#include "proc_entities.h"
 
 /**
  *  @brief function for conversion of char* from input to int
