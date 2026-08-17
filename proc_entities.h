@@ -5,7 +5,7 @@
  *  Library header contains functions used for creating and managaing process entities
  *
  *  @author Stepan Horenek
- *  @date 6. 8. 2026
+ *  @date 17. 8. 2026
 */
 
 #ifndef __IOS_PROC_ENT
@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <semaphore.h>
 
 // valid number of arguments
 #define ARG_NUM 7
@@ -35,9 +36,24 @@
 #define O_MIN 1
 #define O_MAX 100
 
+// structure for shared variables
+typedef struct {
+    // counters
+    int actions_cnt;
+    int visitor_cnt;
+    int cart_cnt;
+    // semaphores
+    sem_t write_mutex;
+    sem_t boarding;
+    sem_t unboarding;
+    sem_t turnstile;
+} shared_struct;
+
 /**
  *  @brief function for handling of dispatcher processes children
+ *  @param shared_mem structure containing semaphores and counters for processes
+ *  @param argv arguments given to program to use for array initialization
 */
-void dispatcher();
+void dispatcher(shared_struct* shared_mem, char*** argv);
 
 #endif

@@ -18,18 +18,6 @@
 #include "proc_input.h"
 #include "proc_entities.h"
 
-typedef struct {
-    // counters
-    int actions_cnt;
-    int visitor_cnt;
-    int cart_cnt;
-    // semaphores
-    sem_t write_mutex;
-    sem_t boarding;
-    sem_t unboarding;
-    sem_t turnstile;
-} shared_struct;
-
 int main (int argc, char** argv){
     if ((check_input(&argc, &argv)) == 1){ // check input parameters
         return 1;
@@ -76,7 +64,7 @@ int main (int argc, char** argv){
         fclose(output);
         return 1;
     } else if (disp_pid == 0){
-        dispatcher();
+        dispatcher(shared_mem, &argv);
     }
     sem_destroy(&shared_mem->write_mutex);
     sem_destroy(&shared_mem->turnstile);
