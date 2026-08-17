@@ -19,12 +19,19 @@
 #include "proc_entities.h"
 
 int main (int argc, char** argv){
-    if ((check_input(&argc, &argv)) == 1){ // check input parameters
+    sync_config* config = malloc(sizeof(sync_config));
+    if (config == NULL){
+        fprintf(stderr, "Error: Couldn't allocate data for simulation config\n");
+        return 1;
+    }
+    if ((check_input(&argc, argv, config)) == 1){ // check input parameters
+        free(config);
         return 1;
     }
     FILE* output = fopen("log.out", "w");
     if (output == NULL){
         fprintf(stderr, "ERROR: Couldn't open log file for write\n");
+        free(config);
         return 1;
     }
     // shared memory initialization
@@ -32,6 +39,7 @@ int main (int argc, char** argv){
     int shared = shm_open(shared_name, O_RDWR | O_CREAT, 0666);
     if (shared == -1){
         fprintf(stderr, "ERROR: Failed to allocate shared memory\n");
+        free(config);
         fclose(output);
         return 1;
     }
@@ -39,6 +47,7 @@ int main (int argc, char** argv){
     shared_struct* shared_mem = mmap(NULL, sizeof(shared_struct), PROT_READ | PROT_WRITE, MAP_SHARED, shared, 0);
     if (shared_mem == MAP_FAILED){
         fprintf(stderr, "Error: Failed to map shared memory\n");
+        free(config);
         close(shared);
         fclose(output);
         return 1;
@@ -59,6 +68,7 @@ int main (int argc, char** argv){
         sem_destroy(&shared_mem->turnstile);
         sem_destroy(&shared_mem->boarding);
         sem_destroy(&shared_mem->unboarding);
+        free(config);
         munmap(shared_mem, sizeof(shared_struct));
         close(shared);
         fclose(output);
@@ -66,6 +76,7 @@ int main (int argc, char** argv){
     } else if (disp_pid == 0){
         dispatcher(shared_mem, &argv);
     }
+    free(config);
     sem_destroy(&shared_mem->write_mutex);
     sem_destroy(&shared_mem->turnstile);
     sem_destroy(&shared_mem->boarding);

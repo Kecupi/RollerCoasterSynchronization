@@ -32,7 +32,7 @@ int val_to_int(char* convertible, int* value){
 /**
  *  @brief function to check whether input value is between boundaries, prints error message
 */
-int check_input_part(char *argument, int min, int max, char *type){
+int check_input_part(char *argument, int min, int max, char *type, int* config_part){
     int value;
     if (val_to_int(argument, &value) == 1){
         return 1;
@@ -41,22 +41,23 @@ int check_input_part(char *argument, int min, int max, char *type){
         fprintf(stderr, "ERROR: %s out of range (expected %d <= N <= %d, got %d)\n", type, min, max, value);
         return 1;
     }
+    *config_part = value;
     return 0;
 }
 /**
  *  @brief function for checking all arguments from input
 */
-int check_input(int *argc, char ***argv){
+int check_input(int *argc, char **argv, sync_config* config){
     if (*argc != ARG_NUM){
         fprintf(stderr, "ERROR: Invalid number of arguments (expected %d, got %d)\n", ARG_NUM, *argc);
         return 1;
     }
-    if (check_input_part((*argv)[1], V_MIN, V_MAX, "Number of carts")
-        || check_input_part((*argv)[2], N_MIN, N_MAX, "Number of visitors")
-        || check_input_part((*argv)[3], K_MIN, K_MAX, "Cart capacity")
-        || check_input_part((*argv)[4], TV_MIN, TV_MAX, "Cart time")
-        || check_input_part((*argv)[5], TN_MIN, TN_MAX, "Maximal visitor time")
-        || check_input_part((*argv)[6], O_MIN, O_MAX, "Cart inteval"))
+    if (check_input_part(argv[1], V_MIN, V_MAX, "Number of carts", &(config->cart_num))
+        || check_input_part(argv[2], N_MIN, N_MAX, "Number of visitors", &(config->visitor_num))
+        || check_input_part(argv[3], K_MIN, K_MAX, "Cart capacity", &(config->cart_capacity))
+        || check_input_part(argv[4], TV_MIN, TV_MAX, "Cart time", &(config->cart_runtime))
+        || check_input_part(argv[5], TN_MIN, TN_MAX, "Maximal visitor time", &(config->max_next_visitor_time))
+        || check_input_part(argv[6], O_MIN, O_MAX, "Cart inteval", &(config->min_time_between_carts)))
     {
         return 1;
     }

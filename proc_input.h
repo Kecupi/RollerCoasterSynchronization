@@ -14,6 +14,15 @@
 #include <stdlib.h>
 #include "proc_entities.h"
 
+typedef struct{
+    int cart_num;
+    int visitor_num;
+    int cart_capacity;
+    int cart_runtime;
+    int max_next_visitor_time;
+    int min_time_between_carts;
+} sync_config;
+
 /**
  *  @brief function for conversion of char* from input to int
  *  @param convertible char* to be converted to int
@@ -22,20 +31,22 @@
 */
 int val_to_int(char* convertible, int* value);
 /**
- *  @brief function to check whether input value is between boundaries, prints error message
+ *  @brief function to check whether input value is between boundaries, loads values into config struct
  *  @param argument pointer to value from input to check against boundaries
  *  @param min minimal value of type to check value against
  *  @param max maximal value of type to check value against
  *  @param type string part of error message to print in case of failure
+ *  @param config_part pointer to int inside config structure to be populated in this function
  *  @return 0 if successful, 1 if problem in function or subfunctions
 */
-int check_input_part(char* value, int min, int max, char* type);
+int check_input_part(char* value, int min, int max, char* type, int* config_part);
 /**
- *  @brief function for checking all arguments from input
+ *  @brief function for checking all arguments from input, passes them alongside config struct to other functions
  *  @param argc pointer to number of arguments, including program itself
- *  @param argv pointer to list of arguments
+ *  @param argv list of arguments
+ *  @param config pointer of config structure to populate with data form user input
  *  @return 0 if successful, 1 if atleast 1 of checks fails
 */
-int check_input(int *argc, char ***argv);
+int check_input(int *argc, char **argv, sync_config* config);
 
 #endif
