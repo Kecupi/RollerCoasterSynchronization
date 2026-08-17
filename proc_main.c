@@ -19,9 +19,15 @@
 #include "proc_entities.h"
 
 typedef struct {
+    // counters
     int actions_cnt;
     int visitor_cnt;
     int cart_cnt;
+    // semaphores
+    sem_t write_mutex;
+    sem_t boarding;
+    sem_t unboarding;
+    sem_t turnstile;
 } shared_struct;
 
 int main (int argc, char** argv){
@@ -49,9 +55,22 @@ int main (int argc, char** argv){
         fclose(output);
         return 1;
     }
+    // init value of shared memory
+    shared_mem->actions_cnt = 0;
+    shared_mem->visitor_cnt = 0;
+    shared_mem->cart_cnt = 0;
+    sem_init(&shared_mem->write_mutex, 1, 1);
+    sem_init(&shared_mem->turnstile, 1, 1);
+    sem_init(&shared_mem->boarding, 1, 0);
+    sem_init(&shared_mem->unboarding, 1, 0);
+    // create dispatcher process
     pid_t disp_pid = fork();
     if (disp_pid < 0){
         fprintf(stderr, "ERROR: Failed to create dispatcher process");
+        sem_destroy(&shared_mem->write_mutex);
+        sem_destroy(&shared_mem->turnstile);
+        sem_destroy(&shared_mem->boarding);
+        sem_destroy(&shared_mem->unboarding);
         munmap(shared_mem, sizeof(shared_struct));
         close(shared);
         fclose(output);
@@ -59,6 +78,10 @@ int main (int argc, char** argv){
     } else if (disp_pid == 0){
         dispatcher();
     }
+    sem_destroy(&shared_mem->write_mutex);
+    sem_destroy(&shared_mem->turnstile);
+    sem_destroy(&shared_mem->boarding);
+    sem_destroy(&shared_mem->unboarding);
     munmap(shared_mem, sizeof(shared_struct));
     close(shared);
     shm_unlink(shared_name);
