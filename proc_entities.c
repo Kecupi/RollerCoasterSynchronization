@@ -46,10 +46,10 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
             exit(0);
             return;
         } else if (cart_pid == 0){
-            cart_pids[shared_mem->cart_cnt - 1] = cart_pid;
             cart(shared_mem->cart_cnt, shared_mem, config);
+        } else {
+            cart_pids[shared_mem->cart_cnt - 1] = cart_pid;
         }
-        sem_post(&shared_mem->write_mutex);
     }
     for (int idx = 0; idx < config->visitor_num; idx++){
         sem_wait(&shared_mem->write_mutex);
@@ -64,10 +64,16 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
             exit(0);
             return;
         } else if (visitor_pid == 0){
-            visitor_pids[shared_mem->visitor_cnt - 1] = visitor_pid;
             visitor(shared_mem->visitor_cnt, shared_mem, config);
+        } else {
+            visitor_pids[shared_mem->visitor_cnt - 1] = visitor_pid;
         }
-        sem_post(&shared_mem->write_mutex);
+    }
+    for (int idx = 0; idx < config->cart_num; idx++){
+        waitpid(cart_pids[idx], NULL, 0);
+    }
+    for (int idx = 0; idx < config->visitor_num; idx++){
+        waitpid(visitor_pids[idx], NULL, 0);
     }
     free(cart_pids);
     free(visitor_pids);
@@ -80,7 +86,6 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
  *  @brief function for cart logic simulation
 */
 void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
-    sem_wait(&shared_mem->write_mutex);
     shared_mem->actions_cnt++;
     printf("%d: C: %d: started\n", shared_mem->actions_cnt, cart_id);
     sem_post(&shared_mem->write_mutex);
@@ -93,7 +98,6 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
  *  @brief function for visitor logic simulation
 */
 void visitor(int visitor_id, shared_struct* shared_mem, sync_config* config){
-    sem_wait(&shared_mem->write_mutex);
     shared_mem->actions_cnt++;
     printf("%d: V: %d: started\n", shared_mem->actions_cnt, visitor_id);
     sem_post(&shared_mem->write_mutex);
