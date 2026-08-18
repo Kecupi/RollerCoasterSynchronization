@@ -63,7 +63,7 @@ int main (int argc, char** argv){
     // create dispatcher process
     pid_t disp_pid = fork();
     if (disp_pid < 0){
-        fprintf(stderr, "ERROR: Failed to create dispatcher process");
+        fprintf(stderr, "ERROR: Failed to create dispatcher process\n");
         sem_destroy(&shared_mem->write_mutex);
         sem_destroy(&shared_mem->turnstile);
         sem_destroy(&shared_mem->boarding);
@@ -76,6 +76,7 @@ int main (int argc, char** argv){
     } else if (disp_pid == 0){
         dispatcher(shared_mem, config);
     }
+    waitpid(disp_pid, NULL, 0);
     free(config);
     sem_destroy(&shared_mem->write_mutex);
     sem_destroy(&shared_mem->turnstile);

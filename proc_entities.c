@@ -14,23 +14,63 @@
  *  @brief function for handling of dispatcher processes children
 */
 void dispatcher(shared_struct* shared_mem, sync_config* config){
+    pid_t* cart_pids = malloc(config->cart_num*sizeof(int));
+    if (cart_pids == NULL){
+        fprintf(stderr, "ERROR: Failed to create list of cart process PIDs\n");
+        munmap(shared_mem, sizeof(shared_struct));
+        exit(0);
+        return;
+    }
+    int* visitor_pids = malloc(config->visitor_num*sizeof(int));
+    if (cart_pids == NULL){
+        fprintf(stderr, "ERROR: Failed to create list of visitor process PIDs\n");
+        munmap(shared_mem, sizeof(shared_struct));
+        free(cart_pids);
+        exit(0);
+        return;
+    }
     sem_wait(&shared_mem->write_mutex);
     shared_mem->actions_cnt++;
-    sem_post(&shared_mem->write_mutex);
     printf("%d: D: started\n", shared_mem->actions_cnt);
+    sem_post(&shared_mem->write_mutex);
     for (int idx = 0; idx < config->cart_num; idx++){
         sem_wait(&shared_mem->write_mutex);
         shared_mem->cart_cnt++;
-        cart(shared_mem->cart_cnt, shared_mem, config);
+        pid_t cart_pid = fork();
+        if (cart_pid < 0){
+            fprintf(stderr, "ERROR: Failed to create cart process\n");
+            // TODO: signal already existing processes to abort
+            munmap(shared_mem, sizeof(shared_struct));
+            free(cart_pids);
+            free(visitor_pids);
+            exit(0);
+            return;
+        } else if (cart_pid == 0){
+            cart_pids[shared_mem->cart_cnt - 1] = cart_pid;
+            cart(shared_mem->cart_cnt, shared_mem, config);
+        }
         sem_post(&shared_mem->write_mutex);
     }
     for (int idx = 0; idx < config->visitor_num; idx++){
         sem_wait(&shared_mem->write_mutex);
-        shared_mem->cart_cnt++;
-        cart(shared_mem->cart_cnt, shared_mem, config);
+        shared_mem->visitor_cnt++;
+        pid_t visitor_pid = fork();
+        if (visitor_pid < 0){
+            fprintf(stderr, "ERROR: Failed to create visitor process\n");
+            // TODO: signal already existing processes to abort
+            munmap(shared_mem, sizeof(shared_struct));
+            free(cart_pids);
+            free(visitor_pids);
+            exit(0);
+            return;
+        } else if (visitor_pid == 0){
+            visitor_pids[shared_mem->visitor_cnt - 1] = visitor_pid;
+            visitor(shared_mem->visitor_cnt, shared_mem, config);
+        }
         sem_post(&shared_mem->write_mutex);
     }
-    free(config);
+    free(cart_pids);
+    free(visitor_pids);
     munmap(shared_mem, sizeof(shared_struct));
     exit(0);
     return;
@@ -42,9 +82,8 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
 void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
     sem_wait(&shared_mem->write_mutex);
     shared_mem->actions_cnt++;
-    printf("%d: C: %d: started", shared_mem->actions_cnt, cart_id);
+    printf("%d: C: %d: started\n", shared_mem->actions_cnt, cart_id);
     sem_post(&shared_mem->write_mutex);
-    free(config);
     munmap(shared_mem, sizeof(shared_struct));
     exit(0);
     return;
@@ -56,9 +95,8 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
 void visitor(int visitor_id, shared_struct* shared_mem, sync_config* config){
     sem_wait(&shared_mem->write_mutex);
     shared_mem->actions_cnt++;
-    printf("%d: C: %d: started", shared_mem->actions_cnt, visitor_id);
+    printf("%d: V: %d: started\n", shared_mem->actions_cnt, visitor_id);
     sem_post(&shared_mem->write_mutex);
-    free(config);
     munmap(shared_mem, sizeof(shared_struct));
     exit(0);
     return;
