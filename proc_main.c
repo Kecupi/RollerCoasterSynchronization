@@ -74,7 +74,7 @@ int main (int argc, char** argv){
         fclose(output);
         return 1;
     } else if (disp_pid == 0){
-        dispatcher(shared_mem, &argv);
+        dispatcher(shared_mem, config);
     }
     free(config);
     sem_destroy(&shared_mem->write_mutex);

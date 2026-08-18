@@ -14,15 +14,6 @@
 #include <stdlib.h>
 #include "proc_entities.h"
 
-typedef struct{
-    int cart_num;
-    int visitor_num;
-    int cart_capacity;
-    int cart_runtime;
-    int max_next_visitor_time;
-    int min_time_between_carts;
-} sync_config;
-
 /**
  *  @brief function for conversion of char* from input to int
  *  @param convertible char* to be converted to int
