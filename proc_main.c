@@ -5,16 +5,16 @@
  *  The file takes input of the user in certain ranges and runs a simulation of an amusement park ride using processes
  
  *  @author Stepan Horenek
- *  @date 17. 8. 2026
+ *  @date 18. 8. 2026
 */
 #include <stdio.h>
 #include <semaphore.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "proc_input.h"
 #include "proc_entities.h"
 
