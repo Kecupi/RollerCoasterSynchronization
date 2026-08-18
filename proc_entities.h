@@ -50,7 +50,8 @@ typedef struct {
     sem_t write_mutex;
     sem_t boarding;
     sem_t unboarding;
-    sem_t turnstile;
+    sem_t turnstile_enter;
+    sem_t turnstile_leave;
 } shared_struct;
 
 // structure for configuration parameters

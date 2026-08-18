@@ -33,24 +33,6 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
     shared_mem->actions_cnt++;
     printf("%d: D: started\n", shared_mem->actions_cnt);
     sem_post(&shared_mem->write_mutex);
-    for (int idx = 0; idx < config->cart_num; idx++){
-        sem_wait(&shared_mem->write_mutex);
-        shared_mem->cart_cnt++;
-        pid_t cart_pid = fork();
-        if (cart_pid < 0){
-            fprintf(stderr, "ERROR: Failed to create cart process\n");
-            // TODO: signal already existing processes to abort
-            munmap(shared_mem, sizeof(shared_struct));
-            free(cart_pids);
-            free(visitor_pids);
-            exit(0);
-            return;
-        } else if (cart_pid == 0){
-            cart(shared_mem->cart_cnt, shared_mem, config);
-        } else {
-            cart_pids[shared_mem->cart_cnt - 1] = cart_pid;
-        }
-    }
     for (int idx = 0; idx < config->visitor_num; idx++){
         sem_wait(&shared_mem->write_mutex);
         shared_mem->visitor_cnt++;
@@ -61,12 +43,30 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
             munmap(shared_mem, sizeof(shared_struct));
             free(cart_pids);
             free(visitor_pids);
-            exit(0);
+            exit(1);
             return;
         } else if (visitor_pid == 0){
             visitor(shared_mem->visitor_cnt, shared_mem, config);
         } else {
             visitor_pids[shared_mem->visitor_cnt - 1] = visitor_pid;
+        }
+    }
+    for (int idx = 0; idx < config->cart_num; idx++){
+        sem_wait(&shared_mem->write_mutex);
+        shared_mem->cart_cnt++;
+        pid_t cart_pid = fork();
+        if (cart_pid < 0){
+            fprintf(stderr, "ERROR: Failed to create cart process\n");
+            // TODO: signal already existing processes to abort
+            munmap(shared_mem, sizeof(shared_struct));
+            free(cart_pids);
+            free(visitor_pids);
+            exit(1);
+            return;
+        } else if (cart_pid == 0){
+            cart(shared_mem->cart_cnt, shared_mem, config);
+        } else {
+            cart_pids[shared_mem->cart_cnt - 1] = cart_pid;
         }
     }
     for (int idx = 0; idx < config->cart_num; idx++){
@@ -91,7 +91,6 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
     sem_post(&shared_mem->write_mutex);
     munmap(shared_mem, sizeof(shared_struct));
     exit(0);
-    return;
 }
 
 /**
@@ -101,7 +100,26 @@ void visitor(int visitor_id, shared_struct* shared_mem, sync_config* config){
     shared_mem->actions_cnt++;
     printf("%d: V: %d: started\n", shared_mem->actions_cnt, visitor_id);
     sem_post(&shared_mem->write_mutex);
+    // list into queue
+    sem_wait(&shared_mem->write_mutex);
+    shared_mem->actions_cnt++;
+    printf("%d: V: %d: queue\n", shared_mem->actions_cnt, visitor_id);
+    sem_post(&shared_mem->write_mutex);
+    // wait to be able to board
+    sem_wait(&shared_mem->turnstile_enter);
+    sem_wait(&shared_mem->write_mutex);
+    shared_mem->actions_cnt++;
+    printf("%d: V: %d: boarding\n", shared_mem->actions_cnt, visitor_id);
+    sem_post(&shared_mem->write_mutex);
+    sem_post(&shared_mem->boarding);
+    // wait to leave the attraction
+    sem_wait(&shared_mem->turnstile_leave);
+    sem_wait(&shared_mem->write_mutex);
+    shared_mem->actions_cnt++;
+    printf("%d: V: %d: leaving\n", shared_mem->actions_cnt, visitor_id);
+    sem_post(&shared_mem->write_mutex);
+    sem_post(&shared_mem->unboarding);
+    // unmap shared memory for this process
     munmap(shared_mem, sizeof(shared_struct));
     exit(0);
-    return;
 }

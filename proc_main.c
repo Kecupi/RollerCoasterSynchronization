@@ -41,7 +41,7 @@ int main (int argc, char** argv){
         fprintf(stderr, "ERROR: Failed to allocate shared memory\n");
         free(config);
         fclose(output);
-        return 1;
+        exit(1);
     }
     ftruncate(shared, sizeof(shared_struct));
     shared_struct* shared_mem = mmap(NULL, sizeof(shared_struct), PROT_READ | PROT_WRITE, MAP_SHARED, shared, 0);
@@ -50,14 +50,15 @@ int main (int argc, char** argv){
         free(config);
         close(shared);
         fclose(output);
-        return 1;
+        exit(1;)
     }
     // init value of shared memory
     shared_mem->actions_cnt = 0;
     shared_mem->visitor_cnt = 0;
     shared_mem->cart_cnt = 0;
     sem_init(&shared_mem->write_mutex, 1, 1);
-    sem_init(&shared_mem->turnstile, 1, 1);
+    sem_init(&shared_mem->turnstile_enter, 1, 1);
+    sem_init(&shared_mem->turnstile_leave, 1, 1);
     sem_init(&shared_mem->boarding, 1, 0);
     sem_init(&shared_mem->unboarding, 1, 0);
     // create dispatcher process
@@ -65,13 +66,15 @@ int main (int argc, char** argv){
     if (disp_pid < 0){
         fprintf(stderr, "ERROR: Failed to create dispatcher process\n");
         sem_destroy(&shared_mem->write_mutex);
-        sem_destroy(&shared_mem->turnstile);
+        sem_destroy(&shared_mem->turnstile_enter);
+        sem_destroy(&shared_mem->turnstile_leave);
         sem_destroy(&shared_mem->boarding);
         sem_destroy(&shared_mem->unboarding);
         free(config);
         munmap(shared_mem, sizeof(shared_struct));
         close(shared);
         fclose(output);
+        exit(1);
         return 1;
     } else if (disp_pid == 0){
         dispatcher(shared_mem, config);
@@ -79,7 +82,8 @@ int main (int argc, char** argv){
     waitpid(disp_pid, NULL, 0);
     free(config);
     sem_destroy(&shared_mem->write_mutex);
-    sem_destroy(&shared_mem->turnstile);
+    sem_destroy(&shared_mem->turnstile_enter);
+    sem_destroy(&shared_mem->turnstile_leave);
     sem_destroy(&shared_mem->boarding);
     sem_destroy(&shared_mem->unboarding);
     munmap(shared_mem, sizeof(shared_struct));
