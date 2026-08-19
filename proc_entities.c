@@ -37,7 +37,7 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
         printf("%d: D: next cart\n", shared_mem->actions_cnt);
         sem_post(&shared_mem->next_cart);
         sem_post(&shared_mem->write_mutex);
-        sem_wait(&shared_mem->cart_signal);
+        sem_wait(&shared_mem->cart_disp);
     }
 }
 
@@ -47,23 +47,33 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
 void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
     shared_mem->actions_cnt++;
     printf("%d: C: %d: started\n", shared_mem->actions_cnt, cart_id);
+    int current_capacity = 0;
     sem_post(&shared_mem->write_mutex);
-    munmap(shared_mem, sizeof(shared_struct));
     while(1){
+        sem_wait(&shared_mem->next_cart);
         sem_wait(&shared_mem->write_mutex);
+        current_capacity = shared_mem->next_cart_cnt;
         shared_mem->actions_cnt++;
+        if (current_capacity <= 0){
+            printf("%d: C: %d: closed\n", shared_mem->actions_cnt, cart_id);
+            sem_post(&shared_mem->write_mutex);
+            munmap(shared_mem, sizeof(shared_struct));
+            exit(0);
+        }
         printf("%d: C: %d: boarding started\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
-        for (int cnt = 0; cnt < config->cart_capacity;cnt++){
+        for (int cnt = 0; cnt < current_capacity;cnt++){
             sem_post(&shared_mem->turnstile_enter);
         }
-        for (int cnt = 0; cnt < config->cart_capacity;cnt++){
+        for (int cnt = 0; cnt < current_capacity;cnt++){
             sem_wait(&shared_mem->boarding);
         }
         sem_wait(&shared_mem->write_mutex);
         shared_mem->actions_cnt++;
         printf("%d: C: %d: boarding complete\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
+
+        sem_post(&shared_mem->cart_disp);
 
         sem_wait(&shared_mem->write_mutex);
         shared_mem->actions_cnt++;
@@ -80,11 +90,6 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
         printf("%d: C: %d: leaving complete\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
     }
-    sem_wait(&shared_mem->write_mutex);
-    shared_mem->actions_cnt++;
-    printf("%d: C: %d: closed\n", shared_mem->actions_cnt, cart_id);
-    sem_post(&shared_mem->write_mutex);
-    exit(0);
 }
 
 /**
