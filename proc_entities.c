@@ -5,7 +5,7 @@
  *  Library contains functions used for creating and managaing process entities
  *
  *  @author Stepan Horenek
- *  @date 18. 8. 2026
+ *  @date 19. 8. 2026
 */
 
 #include "proc_entities.h"
@@ -90,6 +90,41 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
     printf("%d: C: %d: started\n", shared_mem->actions_cnt, cart_id);
     sem_post(&shared_mem->write_mutex);
     munmap(shared_mem, sizeof(shared_struct));
+    while(1){
+        sem_wait(&shared_mem->write_mutex);
+        shared_mem->actions_cnt++;
+        printf("%d: C: %d: boarding started\n", shared_mem->actions_cnt, cart_id);
+        sem_post(&shared_mem->write_mutex);
+        for (int cnt = 0; cnt < config->cart_capacity;cnt++){
+            sem_post(&shared_mem->turnstile_enter);
+        }
+        for (int cnt = 0; cnt < config->cart_capacity;cnt++){
+            sem_wait(&shared_mem->boarding);
+        }
+        sem_wait(&shared_mem->write_mutex);
+        shared_mem->actions_cnt++;
+        printf("%d: C: %d: boarding complete\n", shared_mem->actions_cnt, cart_id);
+        sem_post(&shared_mem->write_mutex);
+
+        sem_wait(&shared_mem->write_mutex);
+        shared_mem->actions_cnt++;
+        printf("%d: C: %d: leaving started\n", shared_mem->actions_cnt, cart_id);
+        sem_post(&shared_mem->write_mutex);
+        for (int cnt = 0; cnt < config->cart_capacity;cnt++){
+            sem_post(&shared_mem->turnstile_leave);
+        }
+        for (int cnt = 0; cnt < config->cart_capacity;cnt++){
+            sem_wait(&shared_mem->unboarding);
+        }
+        sem_wait(&shared_mem->write_mutex);
+        shared_mem->actions_cnt++;
+        printf("%d: C: %d: leaving complete\n", shared_mem->actions_cnt, cart_id);
+        sem_post(&shared_mem->write_mutex);
+    }
+    sem_wait(&shared_mem->write_mutex);
+    shared_mem->actions_cnt++;
+    printf("%d: C: %d: closed\n", shared_mem->actions_cnt, cart_id);
+    sem_post(&shared_mem->write_mutex);
     exit(0);
 }
 
