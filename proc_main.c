@@ -56,7 +56,10 @@ int main (int argc, char** argv){
     shared_mem->actions_cnt = 0;
     shared_mem->visitor_cnt = 0;
     shared_mem->cart_cnt = 0;
+    shared_mem->next_cart_cnt = 0;
     sem_init(&shared_mem->write_mutex, 1, 1);
+    sem_init(&shared_mem->next_cart, 1, 0);
+    sem_init(&shared_mem->cart_disp, 1, 0);
     sem_init(&shared_mem->turnstile_enter, 1, 1);
     sem_init(&shared_mem->turnstile_leave, 1, 1);
     sem_init(&shared_mem->boarding, 1, 0);
@@ -67,6 +70,8 @@ int main (int argc, char** argv){
     if (disp_pid < 0){
         fprintf(stderr, "ERROR: Failed to create dispatcher process\n");
         sem_destroy(&shared_mem->write_mutex);
+        sem_destroy(&shared_mem->next_cart);
+        sem_destroy(&shared_mem->cart_disp);
         sem_destroy(&shared_mem->turnstile_enter);
         sem_destroy(&shared_mem->turnstile_leave);
         sem_destroy(&shared_mem->boarding);
@@ -87,6 +92,8 @@ int main (int argc, char** argv){
             fprintf(stderr, "ERROR: Failed to create visitor process\n");
             // TODO: signal already existing processes to abort
             sem_destroy(&shared_mem->write_mutex);
+            sem_destroy(&shared_mem->next_cart);
+            sem_destroy(&shared_mem->cart_disp);
             sem_destroy(&shared_mem->turnstile_enter);
             sem_destroy(&shared_mem->turnstile_leave);
             sem_destroy(&shared_mem->boarding);
@@ -108,6 +115,8 @@ int main (int argc, char** argv){
             fprintf(stderr, "ERROR: Failed to create cart process\n");
             // TODO: signal already existing processes to abort
             sem_destroy(&shared_mem->write_mutex);
+            sem_destroy(&shared_mem->next_cart);
+            sem_destroy(&shared_mem->cart_disp);
             sem_destroy(&shared_mem->turnstile_enter);
             sem_destroy(&shared_mem->turnstile_leave);
             sem_destroy(&shared_mem->boarding);
@@ -124,6 +133,8 @@ int main (int argc, char** argv){
     waitpid(disp_pid, NULL, 0);
     free(config);
     sem_destroy(&shared_mem->write_mutex);
+    sem_destroy(&shared_mem->next_cart);
+    sem_destroy(&shared_mem->cart_disp);
     sem_destroy(&shared_mem->turnstile_enter);
     sem_destroy(&shared_mem->turnstile_leave);
     sem_destroy(&shared_mem->boarding);

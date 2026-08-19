@@ -46,8 +46,11 @@ typedef struct {
     int actions_cnt;
     int visitor_cnt;
     int cart_cnt;
+    int next_cart_cnt;
     // semaphores
     sem_t write_mutex;
+    sem_t next_cart;
+    sem_t cart_disp;
     sem_t boarding;
     sem_t unboarding;
     sem_t turnstile_enter;

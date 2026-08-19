@@ -16,10 +16,29 @@
 void dispatcher(shared_struct* shared_mem, sync_config* config){
     shared_mem->actions_cnt++;
     printf("%d: D: started\n", shared_mem->actions_cnt);
+    int to_serve = config->visitor_num;
     sem_post(&shared_mem->write_mutex);
-    munmap(shared_mem, sizeof(shared_struct));
-    exit(0);
-    return;
+    while(1){
+        sem_wait(&shared_mem->write_mutex);
+        if (to_serve <= 0){
+            shared_mem->actions_cnt++;
+            printf("%d: D: closing\n", shared_mem->actions_cnt);
+            sem_post(&shared_mem->write_mutex);
+            munmap(shared_mem, sizeof(shared_struct));
+            exit(0);
+        } else if (to_serve < config->cart_capacity){
+            shared_mem->next_cart_cnt = to_serve;
+            to_serve -= config->cart_capacity;
+        } else if (to_serve >= config->cart_capacity){
+            shared_mem->next_cart_cnt = config->cart_capacity;
+            to_serve -= config->cart_capacity;
+        }
+        shared_mem->actions_cnt++;
+        printf("%d: D: next cart\n", shared_mem->actions_cnt);
+        sem_post(&shared_mem->next_cart);
+        sem_post(&shared_mem->write_mutex);
+        sem_wait(&shared_mem->cart_signal);
+    }
 }
 
 /**
