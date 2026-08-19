@@ -5,7 +5,7 @@
  *  The file takes input of the user in certain ranges and runs a simulation of an amusement park ride using processes
  
  *  @author Stepan Horenek
- *  @date 18. 8. 2026
+ *  @date 19. 8. 2026
 */
 #include <stdio.h>
 #include <semaphore.h>
@@ -22,17 +22,17 @@ int main (int argc, char** argv){
     sync_config* config = malloc(sizeof(sync_config));
     if (config == NULL){
         fprintf(stderr, "Error: Couldn't allocate data for simulation config\n");
-        return 1;
+        exit(1);
     }
     if ((check_input(&argc, argv, config)) == 1){ // check input parameters
         free(config);
-        return 1;
+        exit(1);
     }
     FILE* output = fopen("log.out", "w");
     if (output == NULL){
         fprintf(stderr, "ERROR: Couldn't open log file for write\n");
         free(config);
-        return 1;
+        exit(1);
     }
     // shared memory initialization
     const char* shared_name = "/shared_info";
@@ -50,7 +50,7 @@ int main (int argc, char** argv){
         free(config);
         close(shared);
         fclose(output);
-        exit(1;)
+        exit(1);
     }
     // init value of shared memory
     shared_mem->actions_cnt = 0;
@@ -62,6 +62,7 @@ int main (int argc, char** argv){
     sem_init(&shared_mem->boarding, 1, 0);
     sem_init(&shared_mem->unboarding, 1, 0);
     // create dispatcher process
+    sem_wait(&shared_mem->write_mutex);
     pid_t disp_pid = fork();
     if (disp_pid < 0){
         fprintf(stderr, "ERROR: Failed to create dispatcher process\n");
@@ -75,9 +76,50 @@ int main (int argc, char** argv){
         close(shared);
         fclose(output);
         exit(1);
-        return 1;
     } else if (disp_pid == 0){
         dispatcher(shared_mem, config);
+    }
+    for (int idx = 0; idx < config->visitor_num; idx++){
+        sem_wait(&shared_mem->write_mutex);
+        shared_mem->visitor_cnt++;
+        pid_t visitor_pid = fork();
+        if (visitor_pid < 0){
+            fprintf(stderr, "ERROR: Failed to create visitor process\n");
+            // TODO: signal already existing processes to abort
+            sem_destroy(&shared_mem->write_mutex);
+            sem_destroy(&shared_mem->turnstile_enter);
+            sem_destroy(&shared_mem->turnstile_leave);
+            sem_destroy(&shared_mem->boarding);
+            sem_destroy(&shared_mem->unboarding);
+            free(config);
+            munmap(shared_mem, sizeof(shared_struct));
+            close(shared);
+            fclose(output);
+            exit(1);
+        } else if (visitor_pid == 0){
+            visitor(shared_mem->visitor_cnt, shared_mem, config);
+        }
+    }
+    for (int idx = 0; idx < config->cart_num; idx++){
+        sem_wait(&shared_mem->write_mutex);
+        shared_mem->cart_cnt++;
+        pid_t cart_pid = fork();
+        if (cart_pid < 0){
+            fprintf(stderr, "ERROR: Failed to create cart process\n");
+            // TODO: signal already existing processes to abort
+            sem_destroy(&shared_mem->write_mutex);
+            sem_destroy(&shared_mem->turnstile_enter);
+            sem_destroy(&shared_mem->turnstile_leave);
+            sem_destroy(&shared_mem->boarding);
+            sem_destroy(&shared_mem->unboarding);
+            free(config);
+            munmap(shared_mem, sizeof(shared_struct));
+            close(shared);
+            fclose(output);
+            exit(1);
+        } else if (cart_pid == 0){
+            cart(shared_mem->cart_cnt, shared_mem, config);
+        }
     }
     waitpid(disp_pid, NULL, 0);
     free(config);
