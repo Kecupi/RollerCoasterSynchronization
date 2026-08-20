@@ -21,6 +21,12 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
     while(1){
         sem_wait(&shared_mem->write_mutex);
         if (to_serve <= 0){
+            shared_mem->next_cart_cnt = 0;
+            sem_post(&shared_mem->write_mutex);
+            for (int cnt = 0; cnt < config->cart_num; cnt++){
+                sem_post(&shared_mem->next_cart);
+            }
+            sem_wait(&shared_mem->write_mutex);
             shared_mem->actions_cnt++;
             printf("%d: D: closing\n", shared_mem->actions_cnt);
             sem_post(&shared_mem->write_mutex);
@@ -62,10 +68,10 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
         }
         printf("%d: C: %d: boarding started\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
-        for (int cnt = 0; cnt < current_capacity;cnt++){
+        for (int cnt = 0; cnt < current_capacity; cnt++){
             sem_post(&shared_mem->turnstile_enter);
         }
-        for (int cnt = 0; cnt < current_capacity;cnt++){
+        for (int cnt = 0; cnt < current_capacity; cnt++){
             sem_wait(&shared_mem->boarding);
         }
         sem_wait(&shared_mem->write_mutex);
@@ -79,10 +85,10 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
         shared_mem->actions_cnt++;
         printf("%d: C: %d: leaving started\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
-        for (int cnt = 0; cnt < config->cart_capacity;cnt++){
+        for (int cnt = 0; cnt < current_capacity; cnt++){
             sem_post(&shared_mem->turnstile_leave);
         }
-        for (int cnt = 0; cnt < config->cart_capacity;cnt++){
+        for (int cnt = 0; cnt < current_capacity; cnt++){
             sem_wait(&shared_mem->unboarding);
         }
         sem_wait(&shared_mem->write_mutex);

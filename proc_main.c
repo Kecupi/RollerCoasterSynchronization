@@ -5,7 +5,7 @@
  *  The file takes input of the user in certain ranges and runs a simulation of an amusement park ride using processes
  
  *  @author Stepan Horenek
- *  @date 19. 8. 2026
+ *  @date 20. 8. 2026
 */
 #include <stdio.h>
 #include <semaphore.h>
@@ -84,29 +84,6 @@ int main (int argc, char** argv){
     } else if (disp_pid == 0){
         dispatcher(shared_mem, config);
     }
-    for (int idx = 0; idx < config->visitor_num; idx++){
-        sem_wait(&shared_mem->write_mutex);
-        shared_mem->visitor_cnt++;
-        pid_t visitor_pid = fork();
-        if (visitor_pid < 0){
-            fprintf(stderr, "ERROR: Failed to create visitor process\n");
-            // TODO: signal already existing processes to abort
-            sem_destroy(&shared_mem->write_mutex);
-            sem_destroy(&shared_mem->next_cart);
-            sem_destroy(&shared_mem->cart_disp);
-            sem_destroy(&shared_mem->turnstile_enter);
-            sem_destroy(&shared_mem->turnstile_leave);
-            sem_destroy(&shared_mem->boarding);
-            sem_destroy(&shared_mem->unboarding);
-            free(config);
-            munmap(shared_mem, sizeof(shared_struct));
-            close(shared);
-            fclose(output);
-            exit(1);
-        } else if (visitor_pid == 0){
-            visitor(shared_mem->visitor_cnt, shared_mem, config);
-        }
-    }
     for (int idx = 0; idx < config->cart_num; idx++){
         sem_wait(&shared_mem->write_mutex);
         shared_mem->cart_cnt++;
@@ -128,6 +105,29 @@ int main (int argc, char** argv){
             exit(1);
         } else if (cart_pid == 0){
             cart(shared_mem->cart_cnt, shared_mem, config);
+        }
+    }
+    for (int idx = 0; idx < config->visitor_num; idx++){
+        sem_wait(&shared_mem->write_mutex);
+        shared_mem->visitor_cnt++;
+        pid_t visitor_pid = fork();
+        if (visitor_pid < 0){
+            fprintf(stderr, "ERROR: Failed to create visitor process\n");
+            // TODO: signal already existing processes to abort
+            sem_destroy(&shared_mem->write_mutex);
+            sem_destroy(&shared_mem->next_cart);
+            sem_destroy(&shared_mem->cart_disp);
+            sem_destroy(&shared_mem->turnstile_enter);
+            sem_destroy(&shared_mem->turnstile_leave);
+            sem_destroy(&shared_mem->boarding);
+            sem_destroy(&shared_mem->unboarding);
+            free(config);
+            munmap(shared_mem, sizeof(shared_struct));
+            close(shared);
+            fclose(output);
+            exit(1);
+        } else if (visitor_pid == 0){
+            visitor(shared_mem->visitor_cnt, shared_mem, config);
         }
     }
     waitpid(disp_pid, NULL, 0);
