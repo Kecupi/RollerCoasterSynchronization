@@ -72,19 +72,21 @@ int main (int argc, char** argv){
         free(config);
         exit(1);
     }
-    FILE* output = fopen("log.out", "w"); // create log file
-    if (output == NULL){
+    FILE* log_file = fopen("log.out", "w"); // create log file
+    if (log_file == NULL){
         fprintf(stderr, "ERROR: Couldn't open log file for write\n");
         free(config);
         exit(1);
     }
+    freopen("log.out", "w", stdout);
+    setbuf(stdout, NULL);
+    fclose(log_file);
     // create shared memory
     const char* shared_name = "/shared_info";
     int shared_id = shm_open(shared_name, O_RDWR | O_CREAT, 0666);
     if (shared_id == -1){
         fprintf(stderr, "ERROR: Failed to allocate shared memory\n");
         free(config);
-        fclose(output);
         exit(1);
     }
     // size shared memory
@@ -93,7 +95,6 @@ int main (int argc, char** argv){
         free(config);
         close(shared_id);
         shm_unlink(shared_name);
-        fclose(output);
         exit(1);
     }
     // map shared memory
@@ -103,7 +104,6 @@ int main (int argc, char** argv){
         free(config);
         close(shared_id);
         shm_unlink(shared_name);
-        fclose(output);
         exit(1);
     }
     // initialize values in shared memory
@@ -116,7 +116,6 @@ int main (int argc, char** argv){
         free(config);
         destroy_semaphores(shared_mem);
         destroy_shared_memory(shared_name, shared_id, shared_mem);
-        fclose(output);
         exit(1);
     } else if (disp_pid == 0){
         dispatcher(shared_mem, config);
@@ -132,7 +131,6 @@ int main (int argc, char** argv){
             free(config);
             destroy_semaphores(shared_mem);
             destroy_shared_memory(shared_name, shared_id, shared_mem);
-            fclose(output);
             exit(1);
         } else if (cart_pid == 0){
             cart(shared_mem->cart_cnt, shared_mem, config); // shared_mem->write_mutex is passed to cart
@@ -148,7 +146,6 @@ int main (int argc, char** argv){
             free(config);
             destroy_semaphores(shared_mem);
             destroy_shared_memory(shared_name, shared_id, shared_mem);
-            fclose(output);
             exit(1);
         } else if (visitor_pid == 0){
             visitor(shared_mem->visitor_cnt, shared_mem, config); // shared_mem->write_mutex is passed to visitor
@@ -158,5 +155,5 @@ int main (int argc, char** argv){
     free(config);
     destroy_semaphores(shared_mem);
     destroy_shared_memory(shared_name, shared_id, shared_mem);
-    fclose(output);
+    
 }

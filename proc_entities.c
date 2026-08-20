@@ -15,7 +15,7 @@
 */
 void dispatcher(shared_struct* shared_mem, sync_config* config){
     shared_mem->actions_cnt++;
-    printf("%d: D started\n", shared_mem->actions_cnt); // start dispatcher
+    printf("%d: D: started\n", shared_mem->actions_cnt); // start dispatcher
     int to_serve = config->visitor_num; //number of visitors left to ride
     sem_post(&shared_mem->write_mutex);
     while(1){
@@ -26,7 +26,7 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
                 sem_post(&shared_mem->next_cart);
             }
             shared_mem->actions_cnt++;
-            printf("%d: D closing\n", shared_mem->actions_cnt);
+            printf("%d: D: closing\n", shared_mem->actions_cnt);
             sem_post(&shared_mem->write_mutex);
             munmap(shared_mem, sizeof(shared_struct));
             exit(0);
@@ -37,7 +37,7 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
         }
         to_serve -= config->cart_capacity;
         shared_mem->actions_cnt++;
-        printf("%d: D next cart\n", shared_mem->actions_cnt);
+        printf("%d: D: next cart\n", shared_mem->actions_cnt);
         sem_post(&shared_mem->next_cart);
         sem_post(&shared_mem->write_mutex);
         sem_wait(&shared_mem->cart_disp); // wait for cart signal for next loop
