@@ -15,7 +15,7 @@
 */
 void dispatcher(shared_struct* shared_mem, sync_config* config){
     shared_mem->actions_cnt++;
-    printf("%d: D: started\n", shared_mem->actions_cnt);
+    printf("%d: D started\n", shared_mem->actions_cnt);
     int to_serve = config->visitor_num;
     sem_post(&shared_mem->write_mutex);
     while(1){
@@ -28,7 +28,7 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
             }
             sem_wait(&shared_mem->write_mutex);
             shared_mem->actions_cnt++;
-            printf("%d: D: closing\n", shared_mem->actions_cnt);
+            printf("%d: D closing\n", shared_mem->actions_cnt);
             sem_post(&shared_mem->write_mutex);
             munmap(shared_mem, sizeof(shared_struct));
             exit(0);
@@ -40,7 +40,7 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
             to_serve -= config->cart_capacity;
         }
         shared_mem->actions_cnt++;
-        printf("%d: D: next cart\n", shared_mem->actions_cnt);
+        printf("%d: D next cart\n", shared_mem->actions_cnt);
         sem_post(&shared_mem->next_cart);
         sem_post(&shared_mem->write_mutex);
         sem_wait(&shared_mem->cart_disp);
@@ -52,7 +52,7 @@ void dispatcher(shared_struct* shared_mem, sync_config* config){
 */
 void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
     shared_mem->actions_cnt++;
-    printf("%d: C: %d: started\n", shared_mem->actions_cnt, cart_id);
+    printf("%d: C %d: started\n", shared_mem->actions_cnt, cart_id);
     int current_capacity = 0;
     sem_post(&shared_mem->write_mutex);
     while(1){
@@ -61,12 +61,12 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
         current_capacity = shared_mem->next_cart_cnt;
         shared_mem->actions_cnt++;
         if (current_capacity <= 0){
-            printf("%d: C: %d: closed\n", shared_mem->actions_cnt, cart_id);
+            printf("%d: C %d: closed\n", shared_mem->actions_cnt, cart_id);
             sem_post(&shared_mem->write_mutex);
             munmap(shared_mem, sizeof(shared_struct));
             exit(0);
         }
-        printf("%d: C: %d: boarding started\n", shared_mem->actions_cnt, cart_id);
+        printf("%d: C %d: boarding started\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
         for (int cnt = 0; cnt < current_capacity; cnt++){
             sem_post(&shared_mem->turnstile_enter);
@@ -76,14 +76,14 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
         }
         sem_wait(&shared_mem->write_mutex);
         shared_mem->actions_cnt++;
-        printf("%d: C: %d: boarding complete\n", shared_mem->actions_cnt, cart_id);
+        printf("%d: C %d: boarding complete\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
 
         sem_post(&shared_mem->cart_disp);
 
         sem_wait(&shared_mem->write_mutex);
         shared_mem->actions_cnt++;
-        printf("%d: C: %d: leaving started\n", shared_mem->actions_cnt, cart_id);
+        printf("%d: C %d: leaving started\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
         for (int cnt = 0; cnt < current_capacity; cnt++){
             sem_post(&shared_mem->turnstile_leave);
@@ -93,7 +93,7 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
         }
         sem_wait(&shared_mem->write_mutex);
         shared_mem->actions_cnt++;
-        printf("%d: C: %d: leaving complete\n", shared_mem->actions_cnt, cart_id);
+        printf("%d: C %d: leaving complete\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
     }
 }
@@ -103,25 +103,25 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
 */
 void visitor(int visitor_id, shared_struct* shared_mem, sync_config* config){
     shared_mem->actions_cnt++;
-    printf("%d: V: %d: started\n", shared_mem->actions_cnt, visitor_id);
+    printf("%d: V %d: started\n", shared_mem->actions_cnt, visitor_id);
     sem_post(&shared_mem->write_mutex);
     // list into queue
     sem_wait(&shared_mem->write_mutex);
     shared_mem->actions_cnt++;
-    printf("%d: V: %d: queue\n", shared_mem->actions_cnt, visitor_id);
+    printf("%d: V %d: queue\n", shared_mem->actions_cnt, visitor_id);
     sem_post(&shared_mem->write_mutex);
     // wait to be able to board
     sem_wait(&shared_mem->turnstile_enter);
     sem_wait(&shared_mem->write_mutex);
     shared_mem->actions_cnt++;
-    printf("%d: V: %d: boarding\n", shared_mem->actions_cnt, visitor_id);
+    printf("%d: V %d: boarding\n", shared_mem->actions_cnt, visitor_id);
     sem_post(&shared_mem->write_mutex);
     sem_post(&shared_mem->boarding);
     // wait to leave the attraction
     sem_wait(&shared_mem->turnstile_leave);
     sem_wait(&shared_mem->write_mutex);
     shared_mem->actions_cnt++;
-    printf("%d: V: %d: leaving\n", shared_mem->actions_cnt, visitor_id);
+    printf("%d: V %d: leaving\n", shared_mem->actions_cnt, visitor_id);
     sem_post(&shared_mem->write_mutex);
     sem_post(&shared_mem->unboarding);
     // unmap shared memory for this process

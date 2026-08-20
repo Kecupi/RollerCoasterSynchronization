@@ -60,8 +60,8 @@ int main (int argc, char** argv){
     sem_init(&shared_mem->write_mutex, 1, 1);
     sem_init(&shared_mem->next_cart, 1, 0);
     sem_init(&shared_mem->cart_disp, 1, 0);
-    sem_init(&shared_mem->turnstile_enter, 1, 1);
-    sem_init(&shared_mem->turnstile_leave, 1, 1);
+    sem_init(&shared_mem->turnstile_enter, 1, 0);
+    sem_init(&shared_mem->turnstile_leave, 1, 0);
     sem_init(&shared_mem->boarding, 1, 0);
     sem_init(&shared_mem->unboarding, 1, 0);
     // create dispatcher process
