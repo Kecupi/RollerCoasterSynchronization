@@ -15,35 +15,32 @@
 */
 void dispatcher(shared_struct* shared_mem, sync_config* config){
     shared_mem->actions_cnt++;
-    printf("%d: D started\n", shared_mem->actions_cnt);
-    int to_serve = config->visitor_num;
+    printf("%d: D started\n", shared_mem->actions_cnt); // start dispatcher
+    int to_serve = config->visitor_num; //number of visitors left to ride
     sem_post(&shared_mem->write_mutex);
     while(1){
         sem_wait(&shared_mem->write_mutex);
-        if (to_serve <= 0){
+        if (to_serve <= 0){ // no visitors left
             shared_mem->next_cart_cnt = 0;
-            sem_post(&shared_mem->write_mutex);
-            for (int cnt = 0; cnt < config->cart_num; cnt++){
+            for (int cnt = 0; cnt < config->cart_num; cnt++){ // tell all carts to leave
                 sem_post(&shared_mem->next_cart);
             }
-            sem_wait(&shared_mem->write_mutex);
             shared_mem->actions_cnt++;
             printf("%d: D closing\n", shared_mem->actions_cnt);
             sem_post(&shared_mem->write_mutex);
             munmap(shared_mem, sizeof(shared_struct));
             exit(0);
-        } else if (to_serve < config->cart_capacity){
+        } else if (to_serve < config->cart_capacity){ // unfull cart capacity ride
             shared_mem->next_cart_cnt = to_serve;
-            to_serve -= config->cart_capacity;
-        } else if (to_serve >= config->cart_capacity){
+        } else if (to_serve >= config->cart_capacity){ // full cart capacity ride
             shared_mem->next_cart_cnt = config->cart_capacity;
-            to_serve -= config->cart_capacity;
         }
+        to_serve -= config->cart_capacity;
         shared_mem->actions_cnt++;
         printf("%d: D next cart\n", shared_mem->actions_cnt);
         sem_post(&shared_mem->next_cart);
         sem_post(&shared_mem->write_mutex);
-        sem_wait(&shared_mem->cart_disp);
+        sem_wait(&shared_mem->cart_disp); // wait for cart signal for next loop
     }
 }
 
@@ -56,11 +53,11 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
     int current_capacity = 0;
     sem_post(&shared_mem->write_mutex);
     while(1){
-        sem_wait(&shared_mem->next_cart);
+        sem_wait(&shared_mem->next_cart); // wait for dispatcher signal
         sem_wait(&shared_mem->write_mutex);
         current_capacity = shared_mem->next_cart_cnt;
         shared_mem->actions_cnt++;
-        if (current_capacity <= 0){
+        if (current_capacity <= 0){ // if no visitors left to serve
             printf("%d: C %d: closed\n", shared_mem->actions_cnt, cart_id);
             sem_post(&shared_mem->write_mutex);
             munmap(shared_mem, sizeof(shared_struct));
@@ -68,10 +65,10 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
         }
         printf("%d: C %d: boarding started\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
-        for (int cnt = 0; cnt < current_capacity; cnt++){
+        for (int cnt = 0; cnt < current_capacity; cnt++){ // open turnstile for visitors
             sem_post(&shared_mem->turnstile_enter);
         }
-        for (int cnt = 0; cnt < current_capacity; cnt++){
+        for (int cnt = 0; cnt < current_capacity; cnt++){ // wait for all visitors on cart
             sem_wait(&shared_mem->boarding);
         }
         sem_wait(&shared_mem->write_mutex);
@@ -79,16 +76,16 @@ void cart(int cart_id, shared_struct* shared_mem, sync_config* config){
         printf("%d: C %d: boarding complete\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
 
-        sem_post(&shared_mem->cart_disp);
+        sem_post(&shared_mem->cart_disp); // signal dispatcher to send next cart if possible
 
         sem_wait(&shared_mem->write_mutex);
         shared_mem->actions_cnt++;
         printf("%d: C %d: leaving started\n", shared_mem->actions_cnt, cart_id);
         sem_post(&shared_mem->write_mutex);
-        for (int cnt = 0; cnt < current_capacity; cnt++){
+        for (int cnt = 0; cnt < current_capacity; cnt++){ // open turnstile for visitors
             sem_post(&shared_mem->turnstile_leave);
         }
-        for (int cnt = 0; cnt < current_capacity; cnt++){
+        for (int cnt = 0; cnt < current_capacity; cnt++){ // wait for all visitors to leave cart
             sem_wait(&shared_mem->unboarding);
         }
         sem_wait(&shared_mem->write_mutex);
@@ -111,19 +108,19 @@ void visitor(int visitor_id, shared_struct* shared_mem, sync_config* config){
     printf("%d: V %d: queue\n", shared_mem->actions_cnt, visitor_id);
     sem_post(&shared_mem->write_mutex);
     // wait to be able to board
-    sem_wait(&shared_mem->turnstile_enter);
+    sem_wait(&shared_mem->turnstile_enter); // wait for cart to board
     sem_wait(&shared_mem->write_mutex);
     shared_mem->actions_cnt++;
     printf("%d: V %d: boarding\n", shared_mem->actions_cnt, visitor_id);
     sem_post(&shared_mem->write_mutex);
-    sem_post(&shared_mem->boarding);
+    sem_post(&shared_mem->boarding); // report back to cart that visitor is ready
     // wait to leave the attraction
-    sem_wait(&shared_mem->turnstile_leave);
+    sem_wait(&shared_mem->turnstile_leave); // wait for cart to unboard
     sem_wait(&shared_mem->write_mutex);
     shared_mem->actions_cnt++;
     printf("%d: V %d: leaving\n", shared_mem->actions_cnt, visitor_id);
     sem_post(&shared_mem->write_mutex);
-    sem_post(&shared_mem->unboarding);
+    sem_post(&shared_mem->unboarding); // report back to cart that visitor left
     // unmap shared memory for this process
     munmap(shared_mem, sizeof(shared_struct));
     exit(0);
