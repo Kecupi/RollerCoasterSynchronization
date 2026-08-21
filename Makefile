@@ -12,7 +12,9 @@ proc_main: proc_main.o proc_input.o proc_entities.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
 test:
-	cd tests && python3 tests.py
+	cd tests && pytest tests.py -v --tb=short
+	rm -rf tests/__pycache__
+	rm -rf tests/.pytest_cache
 
 zip:
 	zip xhorens00.zip proc_main.c proc_input.c proc_input.h proc_entities.c proc_entities.h Makefile
