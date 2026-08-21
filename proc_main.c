@@ -123,35 +123,46 @@ int main (int argc, char** argv){
     // create cart processes
     for (int idx = 0; idx < config->cart_num; idx++){
         sem_wait(&shared_mem->write_mutex);
-        shared_mem->cart_cnt++;
         pid_t cart_pid = fork();
         if (cart_pid < 0){ // if fork failed
             fprintf(stderr, "ERROR: Failed to create cart process\n");
-            // TODO: signal already existing processes to abort
+            for (int cnt = 0; cnt < (config->visitor_num / config->cart_capacity + 1); cnt++){ // eliminate inner counter inside dispatcher
+                sem_post(&shared_mem->cart_disp);
+            }
+            sem_post(&shared_mem->write_mutex);
+            waitpid(disp_pid, NULL, 0); // wait for dispatcher to abort
+            for (int cnt = 0; cnt < shared_mem->cart_cnt * config->cart_capacity; cnt++){ // sends enough signals to get all carts to the end
+                sem_post(&shared_mem->boarding);
+                sem_post(&shared_mem->unboarding);
+            }
+            while(waitpid(-1, NULL, 0) > 0); // wait for all subprocesses to abort
             free(config);
             destroy_semaphores(shared_mem);
             destroy_shared_memory(shared_name, shared_id, shared_mem);
             exit(1);
         } else if (cart_pid == 0){
+            shared_mem->cart_cnt++;
             cart(shared_mem->cart_cnt, shared_mem, config); // shared_mem->write_mutex is passed to cart
         }
     }
     for (int idx = 0; idx < config->visitor_num; idx++){
         sem_wait(&shared_mem->write_mutex);
-        shared_mem->visitor_cnt++;
         pid_t visitor_pid = fork();
         if (visitor_pid < 0){ // if fork failed
             fprintf(stderr, "ERROR: Failed to create visitor process\n");
             // TODO: signal already existing processes to abort
+            waitpid(disp_pid, NULL, 0); // wait for dispatcher to end
             free(config);
             destroy_semaphores(shared_mem);
             destroy_shared_memory(shared_name, shared_id, shared_mem);
             exit(1);
         } else if (visitor_pid == 0){
+            shared_mem->visitor_cnt++;
             visitor(shared_mem->visitor_cnt, shared_mem, config); // shared_mem->write_mutex is passed to visitor
         }
     }
-    waitpid(disp_pid, NULL, 0); // wait for dispatcher to end
+    while(waitpid(-1, NULL, 0) > 0); // wait for all subprocesses to end
+    waitpid(disp_pid, NULL, 0); // wait for dispatcher to end just for sure
     free(config);
     destroy_semaphores(shared_mem);
     destroy_shared_memory(shared_name, shared_id, shared_mem);
