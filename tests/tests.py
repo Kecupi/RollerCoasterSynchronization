@@ -23,12 +23,33 @@ class ArgumentsTests(unittest.TestCase):
     def setUp(self):
         """Function creating fixture"""
         subprocess.run(["make"], capture_output=True)
-    def test_WrongCount(self):
+    def test_WrongArgCount(self):
         """Fails with no arguments"""
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.run(["./proc_main"], capture_output=True, text=True, check=True)
         self.assertEqual(context.exception.returncode, 1)
         msg_match = re.search(r"ERROR: Invalid number of arguments \(expected \d+, got \d+\)", context.exception.stderr)
+        self.assertIsNotNone(msg_match)
+    def test_InvalidCharInArg(self):
+        """Fails when one of the arguments containts char not convertible to int"""
+        with self.assertRaises(subprocess.CalledProcessError) as context:
+            subprocess.run(["./proc_main", "1A", "1", "1", "1", "1", "1"], capture_output=True, text=True, check=True)
+        self.assertEqual(context.exception.returncode, 1)
+        msg_match = re.search(r"ERROR: Invalid character inside argument during conversion", context.exception.stderr)
+        self.assertIsNotNone(msg_match)
+    def test_InvalidArgType(self):
+        """Fails when one of the arguments is not convertible to int"""
+        with self.assertRaises(subprocess.CalledProcessError) as context:
+            subprocess.run(["./proc_main", "1", "1", "4", "AA", "1", "1"], capture_output=True, text=True, check=True)
+        self.assertEqual(context.exception.returncode, 1)
+        msg_match = re.search(r"ERROR: Invalid type of argument, can't be converted to int", context.exception.stderr)
+        self.assertIsNotNone(msg_match)
+    def test_ArgOutOfRange(self):
+        """Failes when one of the arguments is out of designated range"""
+        with self.assertRaises(subprocess.CalledProcessError) as context:
+            subprocess.run(["./proc_main", "-1", "1", "4", "5", "1", "1"], capture_output=True, text=True, check=True)
+        self.assertEqual(context.exception.returncode, 1)
+        msg_match = re.search(r"ERROR: .+ out of range \(expected \d+ <= N <= \d+, got -?\d+\)", context.exception.stderr)
         self.assertIsNotNone(msg_match)
     def tearDown(self):
         """Function destroying fixture"""
