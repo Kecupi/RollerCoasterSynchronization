@@ -23,34 +23,43 @@ class ArgumentsTests(unittest.TestCase):
     def setUp(self):
         """Function creating fixture"""
         subprocess.run(["make"], capture_output=True)
+
+    def assertFailure(self, args, expected_msg):
+        """Support function to run tests based on args"""
+        with self.assertRaises(subprocess.CalledProcessError) as context:
+            subprocess.run(["./proc_main"] + args, capture_output=True, text=True, check=True)
+        self.assertEqual(context.exception.returncode, 1)
+        msg_match = re.search(expected_msg, context.exception.stderr)
+        self.assertIsNotNone(msg_match)
+
     def test_WrongArgCount(self):
         """Fails with no arguments"""
-        with self.assertRaises(subprocess.CalledProcessError) as context:
-            subprocess.run(["./proc_main"], capture_output=True, text=True, check=True)
-        self.assertEqual(context.exception.returncode, 1)
-        msg_match = re.search(r"ERROR: Invalid number of arguments \(expected \d+, got \d+\)", context.exception.stderr)
-        self.assertIsNotNone(msg_match)
+        regex = r"ERROR: Invalid number of arguments \(expected \d+, got \d+\)"
+        self.assertFailure([], regex)
+        self.assertFailure(["", "", "", "", ""], regex)
+        self.assertFailure(["", "", "", "", "", "", ""], regex)
+
     def test_InvalidCharInArg(self):
-        """Fails when one of the arguments containts char not convertible to int"""
-        with self.assertRaises(subprocess.CalledProcessError) as context:
-            subprocess.run(["./proc_main", "1A", "1", "1", "1", "1", "1"], capture_output=True, text=True, check=True)
-        self.assertEqual(context.exception.returncode, 1)
-        msg_match = re.search(r"ERROR: Invalid character inside argument during conversion", context.exception.stderr)
-        self.assertIsNotNone(msg_match)
+        """Fails when one of the arguments containts char not convertable to int"""
+        regex = r"ERROR: Invalid character inside argument during conversion"
+        self.assertFailure(["1A", "1", "1", "1", "1", "1"], regex)
+        self.assertFailure(["1", "1", "4CC2", "1", "1", "1"], regex)
+        self.assertFailure(["1", "1", "4", "1", "1", "5D6"], regex)
+
     def test_InvalidArgType(self):
-        """Fails when one of the arguments is not convertible to int"""
-        with self.assertRaises(subprocess.CalledProcessError) as context:
-            subprocess.run(["./proc_main", "1", "1", "4", "AA", "1", "1"], capture_output=True, text=True, check=True)
-        self.assertEqual(context.exception.returncode, 1)
-        msg_match = re.search(r"ERROR: Invalid type of argument, can't be converted to int", context.exception.stderr)
-        self.assertIsNotNone(msg_match)
+        """Fails when one of the arguments is not convertable to int"""
+        regex = r"ERROR: Invalid type of argument, can't be converted to int"
+        self.assertFailure(["A", "1", "1", "1", "1", "1"], regex)
+        self.assertFailure(["1", "1", "4", "R2D2", "1", "1"], regex)
+        self.assertFailure(["1", "1", "4", "1", "HKS", "1"], regex)
+
     def test_ArgOutOfRange(self):
         """Failes when one of the arguments is out of designated range"""
-        with self.assertRaises(subprocess.CalledProcessError) as context:
-            subprocess.run(["./proc_main", "-1", "1", "4", "5", "1", "1"], capture_output=True, text=True, check=True)
-        self.assertEqual(context.exception.returncode, 1)
-        msg_match = re.search(r"ERROR: .+ out of range \(expected \d+ <= N <= \d+, got -?\d+\)", context.exception.stderr)
-        self.assertIsNotNone(msg_match)
+        regex = r"ERROR: .+ out of range \(expected \d+ <= N <= \d+, got -?\d+\)"
+        self.assertFailure(["1", "1", "4", "1", "1", "-1"], regex) # negative value
+        self.assertFailure(["10000", "1", "4", "1", "1", "1"], regex) # value too big
+        self.assertFailure(["1", "0", "4", "1", "1", "1"], regex) # value lower than one of bounds
+
     def tearDown(self):
         """Function destroying fixture"""
         subprocess.run(["make", "clean"], capture_output=True)
